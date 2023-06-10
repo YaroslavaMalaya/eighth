@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "l61Vy+WcObi32nRI3X3a3O8tukl9eTX4110K3zIzMVhYcbFbi+JZhXZS7BvxMrPmChG8QFVTg761D8BOGzcBcw==",
+  "dgSpecHash": "/0L/7A4dM/jhxh/qEuRM/+9bNehkZT6Vjh4obrRejkYrRL2W2hrdILOLJvukOloGC1Yn6Lk5//zdEBDPSGQtIw==",
   "success": true,
   "projectFilePath": "/Users/Yarrochka/Мої файли/Study/IT 3/eighth/eighth/eighth.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "/Users/Yarrochka/.nuget/packages/csvhelper/30.0.1/csvhelper.30.0.1.nupkg.sha512"
+  ],
   "logs": []
 }
