@@ -1,0 +1,11 @@
+/Users/Yarrochka/Мої файли/Study/IT 3/eighth/eighth/bin/Debug/net7.0/eighth
+/Users/Yarrochka/Мої файли/Study/IT 3/eighth/eighth/bin/Debug/net7.0/eighth.dll
+/Users/Yarrochka/Мої файли/Study/IT 3/eighth/eighth/bin/Debug/net7.0/eighth.pdb
+/Users/Yarrochka/Мої файли/Study/IT 3/eighth/eighth/obj/Debug/net7.0/eighth.csproj.AssemblyReference.cache
+/Users/Yarrochka/Мої файли/Study/IT 3/eighth/eighth/obj/Debug/net7.0/eighth.GeneratedMSBuildEditorConfig.editorconfig
+/Users/Yarrochka/Мої файли/Study/IT 3/eighth/eighth/obj/Debug/net7.0/eighth.AssemblyInfoInputs.cache
+/Users/Yarrochka/Мої файли/Study/IT 3/eighth/eighth/obj/Debug/net7.0/eighth.AssemblyInfo.cs
+/Users/Yarrochka/Мої файли/Study/IT 3/eighth/eighth/obj/Debug/net7.0/eighth.csproj.CoreCompileInputs.cache
+/Users/Yarrochka/Мої файли/Study/IT 3/eighth/eighth/obj/Debug/net7.0/eighth.dll
+/Users/Yarrochka/Мої файли/Study/IT 3/eighth/eighth/obj/Debug/net7.0/refint/eighth.dll
+/Users/Yarrochka/Мої файли/Study/IT 3/eighth/eighth/obj/Debug/net7.0/eighth.pdb
