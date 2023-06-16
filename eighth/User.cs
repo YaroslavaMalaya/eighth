@@ -1,20 +1,33 @@
 namespace eighth;
 
+public class MovieRec
+{
+    public string MovieId { get; set; }
+    public int Rating { get; set; }
+    public double Popularity { get; set; }
+
+    public MovieRec(string movieId, int rating, double popularity)
+    {
+        MovieId = movieId;
+        Rating = rating;
+        Popularity = popularity;
+    }
+}
+
 public class User
 {
     public string UserID { get; set; }
-    public Dictionary<string, List<string>> MoviesByGenres; // це щоб ми знаходили за жанром фільми які можемо порекомендувати
+    public Dictionary<string, List<MovieRec>> MoviesByGenres; // це щоб ми знаходили за жанром фільми які можемо порекомендувати
 
-    public void Add(string genre, string movie)
+    public void Add(string genre, MovieRec movie)
     {
         if (MoviesByGenres.ContainsKey(genre))
         {
-            var movies = MoviesByGenres[genre];
-            movies.Add(movie);
+            MoviesByGenres[genre].Add(movie);
         }
         else
         {
-            MoviesByGenres.Add(genre, new List<string>{movie});
+            MoviesByGenres.Add(genre, new List<MovieRec>{movie});
         }
     }
 }
