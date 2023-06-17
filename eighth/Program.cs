@@ -31,69 +31,128 @@ using (var csv = new CsvReader(reader, csvConfig))
     movieIds = movies_genres.ToDictionary(x => x.MovieId, x => new MoviePop(x.Genres, double.Parse(x.Popularity.Replace('.', ','))));
 }
 
-var preferences = new DataTable();
-preferences.Columns.Add("UserId", typeof(string));
-preferences.Columns.Add("Drama", typeof(List<int>));
-preferences.Columns.Add("Comedy", typeof(List<int>));
-preferences.Columns.Add("Action", typeof(List<int>)); // + Adventure
-preferences.Columns.Add("Romance", typeof(List<int>));
-preferences.Columns.Add("Fiction", typeof(List<int>)); // Science Fiction + Fantasy
-preferences.Columns.Add("Animation", typeof(List<int>));
-preferences.Columns.Add("Thriller", typeof(List<int>));
-preferences.Columns.Add("Documentary", typeof(List<int>));
-preferences.Columns.Add("UserObject", typeof(User)); 
-
+var users = new Dictionary<string, User>();
+var genres = new List<string> { "Drama", "Comedy", "Action", "Romance", "Fiction", "Animation", "Thriller", "Documentary" };
 using (var reader = new StreamReader("ratings_export.csv"))
 using (var csv = new CsvReader(reader, csvConfig))
 { 
     csv.Read();
     csv.ReadHeader();
-    preferences.PrimaryKey = new DataColumn[] {preferences.Columns["UserId"]}; // UserId у кожного індівідуальний
     while (csv.Read())
     {
         var rating = csv.GetRecord<RatingsExport>();
         if (movieIds.ContainsKey(rating.MovieID))
         {
-            var row = preferences.Rows.Find(rating.UserID);
-            if (row == null)
+            if (!users.ContainsKey(rating.UserID))
             {
-                row = preferences.NewRow();
-                row["UserId"] = rating.UserID;
-                preferences.Rows.Add(row);
                 // всього юзерів 7473
                 var user = new User
                 {
                     UserID = rating.UserID,
                     MoviesByGenres = new Dictionary<string, List<MovieRec>>()
                 };
-                row["UserObject"] = user;
+                users.Add(rating.UserID, user);
             }
-            var currentUser = (User)row["UserObject"];
+            var currentUser = users[rating.UserID];
             var movie = movieIds[rating.MovieID];
-            var genres = movie.Genres.Split('"').Where(x => x != "[" && x != "]" && x != ",");
-            foreach (var genre in genres)
+            var movieGenres = movie.Genres.Split('"').Where(x => x != "[" && x != "]" && x != ",");
+            foreach (var genre in movieGenres)
             {
-                if (preferences.Columns.Contains(genre))
+                if (genres.Contains(genre))
                 {
                     var m = new MovieRec(rating.MovieID, int.Parse(rating.Rating), movie.Popularity);
                     currentUser.Add(genre, m);
-                    var existing = row.Field<List<int>?>(genre) ?? new List<int>(); // отримуємо існуюче або new List (якщо null)
-                    existing.Add(int.Parse(rating.Rating));
-                    row.SetField(genre, existing);
                 }
             }
         }
     }
 }
 
-foreach (DataRow row in preferences.Rows)
+var preferences = new DataTable();
+preferences.Columns.Add("UserId", typeof(string));
+preferences.Columns.Add("Drama", typeof(double));
+preferences.Columns.Add("Comedy", typeof(double));
+preferences.Columns.Add("Action", typeof(double)); // + Adventure
+preferences.Columns.Add("Romance", typeof(double));
+preferences.Columns.Add("Fiction", typeof(double)); // Science Fiction + Fantasy
+preferences.Columns.Add("Animation", typeof(double));
+preferences.Columns.Add("Thriller", typeof(double));
+preferences.Columns.Add("Documentary", typeof(double));
+preferences.PrimaryKey = new DataColumn[] { preferences.Columns["UserId"] };
+
+foreach (var userPair in users)
 {
-    var current = (User)row["UserObject"];
-    foreach (var group in current.MoviesByGenres)
+    var row = preferences.Rows.Find(userPair.Key);
+    if (row == null)
     {
-        var nameColumn = group.Key;
-        // отут буде прописано нормалізація всіх оцінок і закидання їх в preferences
+        row = preferences.NewRow();
+        row["UserId"] = userPair.Key;
+        preferences.Rows.Add(row);
+    }
+
+    foreach (var (genre, movies) in userPair.Value.MoviesByGenres)
+    {
+        var ratings = movies.Select(movie => movie.Rating).ToList();
+        if (ratings.Count == 0)
+        {
+            row.SetField(genre, 0.0);
+        }
+        else if (ratings.Count >= 4)
+        {
+            row.SetField(genre, Math.Round(Normalize(ratings), 1));
+        }
+        else
+        {
+            row.SetField(genre, Math.Round(NormalizeForSmallAmount(ratings), 1));
+        }
+    }
+    
+    foreach (DataColumn column in preferences.Columns)
+    {
+        if (row.IsNull(column))
+        {
+            row[column] = 0.0;
+        }
     }
 }
 
+
+// це можна подивитися по кожному користувачу його вподобання
+/*foreach (DataRow row in preferences.Rows) 
+{
+    Console.WriteLine($"User: {row["UserId"]}");
+    Console.WriteLine($"Drama: {row["Drama"]}");
+    Console.WriteLine($"Comedy: {row["Comedy"]}");
+    Console.WriteLine($"Action: {row["Action"]}");
+    Console.WriteLine($"Romance: {row["Romance"]}");
+    Console.WriteLine($"Fiction: {row["Fiction"]}");
+    Console.WriteLine($"Animation: {row["Animation"]}");
+    Console.WriteLine($"Thriller: {row["Thriller"]}");
+    Console.WriteLine($"Documentary: {row["Documentary"]}");
+    Console.WriteLine();
+}*/
+
 Console.WriteLine('h');
+
+double Normalize(List<int> ratings)
+{
+    var minRating = ratings.Min();
+    var maxRating = ratings.Max();
+    if (minRating == maxRating)
+    {
+        return minRating / 10;
+    }
+    var normalize = new List<double>();
+    foreach (var element in ratings)
+    {
+        double norm = (element - minRating) / (maxRating - minRating);
+        normalize.Add(norm);
+    }
+    return normalize.Average();
+}
+
+double NormalizeForSmallAmount(List<int> ratings)
+{
+    var sum = ratings.Average();
+    return sum / 10;
+}
