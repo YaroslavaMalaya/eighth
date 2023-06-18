@@ -10,7 +10,7 @@ public class MovieData
     //[Name("imdb_id")] public string? ImdbId { get; set; }
     //[Name("imdb_link")] public string? ImdbLink { get; set; }
     [Name("movie_id")] public string? MovieId { get; set; }
-    //[Name("movie_title")] public string? MovieTitle { get; set; }
+    [Name("movie_title")] public string MovieTitle { get; set; }
     //[Name("original_language")] public string? LanguageOr { get; set; }
     //[Name("overview")] public string? Overview { get; set; }
     [Name("popularity")] public string? Popularity { get; set; }
