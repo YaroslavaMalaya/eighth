@@ -27,11 +27,13 @@ public class MovieData
 
 public class MoviePop
 {
+    public string MovieId;
     public string Genres;
     public double Popularity;
 
-    public MoviePop(string g, double p)
+    public MoviePop(string i, string g, double p)
     {
+        MovieId = i;
         Genres = g;
         Popularity = p;
     }

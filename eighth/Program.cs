@@ -3,7 +3,8 @@ using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
 using eighth;
-    
+
+
 Dictionary<string, MoviePop> movieIds;
 Dictionary<string, string?> check_correct;
 var genres = new List<string> { "Drama", "Comedy", "Action", "Romance", "Fiction", "Animation", "Thriller", "Documentary" };
@@ -32,7 +33,8 @@ using (var csv = new CsvReader(reader, csvConfig))
     ).ToList();
 
     check_correct = movies_genres.ToDictionary(x => x.MovieId, x => x.MovieTitle);
-    movieIds = movies_genres.ToDictionary(x => x.MovieId, x => new MoviePop(x.Genres, double.Parse(x.Popularity.Replace('.', ','))));
+    movieIds = movies_genres.ToDictionary(x => x.MovieId, x => 
+        new MoviePop(x.MovieId, x.Genres, double.Parse(x.Popularity.Replace('.', ','))));
 }
 
 var users = new Dictionary<string, User>();
@@ -101,18 +103,26 @@ while (true)
         Console.WriteLine($"\nYou've rated a film '{movie_rate}' ({movie_id}) as {double.Parse(rating_rate)}");
     }
 
-    Console.WriteLine("\nDo you wanna rate more movies or take a look of recommendations? (enter rate or recommend):");
+    Console.WriteLine("\nDo you want to rate more movies or take a look at recommendations? (enter 'rate', 'recommend', or 'discovery)'");
     var check = Console.ReadLine();
     switch (check)
     {
         case "rate":
             continue;
         case "recommend":
-            RatingProcessing(users.Last()); // закинути в табличку нового юзера з його фільмами оціненими
-            /// твій код
-            break; // поки що так 
+            RatingProcessing(users.Last()); // Add the new user with their rated movies to the table
+            var recommendations = GetMovieRecommendations(users, movieIds, check_correct);
+            Console.WriteLine("Here are your recommendations:");
+            for (var i = 0; i < recommendations.Count; i++)
+            {
+                Console.WriteLine($"{i + 1}. {recommendations[i]}");
+            }
+            break;
+        case "discovery":
+            DiscoveryMode(users, movieIds, check_correct);
+            break;
         default:
-            Console.WriteLine("It's look like you are tyred, go to bed.");
+            Console.WriteLine("It looks like you are tired. Go to bed.");
             break;
     }
     break;
@@ -129,7 +139,7 @@ void RatingGathering(string userId, string movieId, string rating)
             MoviesByGenres = new Dictionary<string, List<MovieRec>>()
         };
         users.Add(userId, user);
-    }
+    }   
     var current_user = users[userId];
     var movie = movieIds[movieId];
     var movie_genres = movie.Genres.Split('"').Where(x => x != "[" && x != "]" && x != ",");
@@ -143,6 +153,7 @@ void RatingGathering(string userId, string movieId, string rating)
     }
 }
 
+
 void RatingProcessing(KeyValuePair<string, User> user)
 {
     var row = preferences.Rows.Find(user.Key);
@@ -153,7 +164,7 @@ void RatingProcessing(KeyValuePair<string, User> user)
         preferences.Rows.Add(row);
         row["UserObject"] = user.Value;
     }
-
+    
     foreach (var (genre, movies) in user.Value.MoviesByGenres)
     {
         var ratings = movies.Select(movie => movie.Rating).ToList();
@@ -203,10 +214,120 @@ double NormalizeForSmallAmount(List<int> ratings)
     return sum / 10;
 }
 
+void DiscoveryMode(Dictionary<string, User> users, Dictionary<string, MoviePop> movieIds, Dictionary<string, string?> check_correct)
+{
+    Console.WriteLine("Welcome to the discovery!");
+
+    var movieRecommendations = GetMovieRecommendations(users, movieIds, check_correct);
+    var user = users.Last().Value;
+    var answeredGenres = new List<string>();
+    
+
+
+    foreach (var genre in genres)
+    {
+        if (answeredGenres.Contains(genre))
+            continue;
+
+        Console.WriteLine($"Do you like {genre} movies? (Yes/No)");
+        var response = Console.ReadLine();
+
+        if (response.Equals("Yes", StringComparison.OrdinalIgnoreCase))
+        {
+            var moviesInGenre = movieIds.Values.Where(movie => movie.Genres.Contains(genre)).ToList();
+            var unratedMovies = moviesInGenre
+                .Where(movie => !user.MoviesByGenres.ContainsKey(movie.MovieId))
+                .OrderByDescending(movie => movie.Popularity)
+                .Take(2) // Limit the number of movies in each genre
+                .ToList();
+
+           
+            foreach (var movie in unratedMovies)
+            {
+                Console.WriteLine($"Have you seen '{movieIds[movie.MovieId].MovieId}'? (Yes/No)");
+
+                var movieResponse = Console.ReadLine();
+
+                if (movieResponse.Equals("Yes", StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine("How would you rate it?");
+                    var rating = Console.ReadLine();
+                    RatingGathering(userId: "NewUser", movieId: movie.MovieId, rating: rating);
+                }
+            }
+
+            answeredGenres.Add(genre);
+        }
+    }
+   
+    Console.WriteLine("Thank you for your responses! Generating recommendations...");
+    RatingProcessing(users.Last()); // Add the new user with their rated movies to the table
+
+    // Display recommendations
+    movieRecommendations = GetMovieRecommendations(users, movieIds, check_correct);
+    Console.WriteLine("Here are your recommendations:");
+    for (var i = 0; i < movieRecommendations.Count; i++)
+    {
+        Console.WriteLine($"{i + 1}. {movieRecommendations[i]}");
+    }
+}
+
+
+List<string> GetMovieRecommendations(Dictionary<string, User> users, Dictionary<string, MoviePop> movieIds, Dictionary<string, string?> check_correct)
+{
+    var user = users.Last().Value;
+    var movieRecommendations = new List<string>();
+    var count = 0;
+
+    foreach (var movieId in movieIds.Keys)
+    {
+        if (count >= 10) // Limit the number of recommendations to 10
+            break;
+
+        var movie = movieIds[movieId];
+
+        // Check if the user has watched the movie
+        if (!user.MoviesByGenres.ContainsKey(movieId))
+        {
+            var relevantGenres = movie.Genres.Split(", ");
+            var hasRelevantGenre = false;
+
+            foreach (var genre in relevantGenres)
+            {
+                if (user.MoviesByGenres.ContainsKey(genre))
+                {
+                    hasRelevantGenre = true;
+                    break;
+                }
+            }
+
+            if (hasRelevantGenre)
+            {
+                var averageRatings = relevantGenres
+                    .Where(genre => user.MoviesByGenres.ContainsKey(genre))
+                    .Select(genre => user.MoviesByGenres[genre].Select(movieRec => movieRec.Rating).Average());
+
+                var averageRating = averageRatings.Any() ? averageRatings.Average() : 0;
+
+                if (averageRating >= 7.0)
+                {
+                    movieRecommendations.Add(check_correct[movieId]);
+                    count++;
+                }
+            }
+        }
+    }
+
+    return movieRecommendations;
+}
+
+
+
 int DamerauLevenshteinDistance(string word1, string word2)
 {
     var w1 = word1.Length;
     var w2 = word2.Length;
+    
 
     var matrix = new int[w1 + 1, w2 + 1];
     for (var j = 0; j <= w2; j++)

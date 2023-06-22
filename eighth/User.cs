@@ -18,7 +18,11 @@ public class User
 {
     public string UserID { get; set; }
     public Dictionary<string, List<MovieRec>> MoviesByGenres; // це щоб ми знаходили за жанром фільми які можемо порекомендувати
-
+    
+    public User()
+    {
+        MoviesByGenres = new Dictionary<string, List<MovieRec>>();
+    }
     public void Add(string genre, MovieRec movie)
     {
         if (MoviesByGenres.ContainsKey(genre))
