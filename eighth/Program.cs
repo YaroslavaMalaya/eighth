@@ -272,37 +272,48 @@ List<string> GetMovieRecommendations()
 {
     var user = users.Last().Value.MoviesByGenres;
     var user_movies = user.Values.SelectMany(list => list.Select(mov => mov.MovieId)).ToList();
-    var current_user = preferences.Rows[^1];
+    var user_rat = preferences.Rows[^1].ItemArray[1..^2].ToList();
     var recom_users = new List<User>();
-    var count_sim = 0;
-    
+    var rec_knn = new List<double>();
+    var index_knn = 0;
+    var rat_sum = new List<double>();
+
     foreach (DataRow row in preferences.Rows)
     {
-        foreach (DataColumn column in preferences.Columns)
+        var cur_user_rat = row.ItemArray[1..^2].ToList();
+        var index = 0;
+        foreach (double el in cur_user_rat)
         {
-            if (column.ColumnName is "UserId" or "UserObject")
-                continue;
-            var genre = column.ColumnName;
-            var user_rating = current_user[genre].ToString();
-            if (row[genre].ToString() == user_rating || row[genre].ToString() == (double.Parse(user_rating) + 0.1).ToString()
-                                          || row[genre].ToString() == (double.Parse(user_rating) - 0.1).ToString())
+            rat_sum.Add(Math.Pow(el + (double)user_rat[index], 2));
+            index++;
+        }
+        var len = Math.Sqrt(rat_sum.Sum());
+
+        if (index_knn <= 5)
+        {
+            recom_users.Insert(index_knn, (User)row["UserObject"]);
+            rec_knn.Insert(index_knn, len);
+            index_knn++;
+        }
+        else
+        {
+            var check = rec_knn.FindIndex(x => x < len);
+            if (check != -1)
             {
-                count_sim++;
+                recom_users.Insert(check, (User)row["UserObject"]);
+                rec_knn.Insert(check, len);
             }
-
         }
-
-        if (count_sim >= genres.Count/2)
-        {
-            recom_users.Add((User)row["UserObject"]);
-        }
-        count_sim = 0;
     }
     
-    var movie_recom = recom_users
-        .SelectMany(user_rec => user_rec.MoviesByGenres.Values.SelectMany(movies_g => movies_g))
-        .Where(movie_rec => !user_movies.Contains(movie_rec.MovieId) && movie_rec.Popularity >= 0.6)
-        .Select(movie_rec => movie_rec.MovieId).Take(10).ToList();
+    var movie_recom = recom_users.SelectMany(user_rec => user_rec.MoviesByGenres.Values.SelectMany(movies_g => movies_g))
+        .Where(movie_rec => !user_movies.Contains(movie_rec.MovieId)).Select(movie_rec => movie_rec.MovieId).Take(5).ToList();
+    var movie_names = movie_recom.Select(movieID => check_correct[movieID]).ToList();
+
+    // var movie_recom = recom_users
+    //     .SelectMany(user_rec => user_rec.MoviesByGenres.Values.SelectMany(movies_g => movies_g))
+    //     .Where(movie_rec => !user_movies.Contains(movie_rec.MovieId) && movie_rec.Popularity >= 0.6)
+    //     .Select(movie_rec => movie_rec.MovieId).Take(10).ToList();
     
     // the same as 
     /*foreach (var user_r in recom_users)
@@ -321,7 +332,7 @@ List<string> GetMovieRecommendations()
     // or as
     // (from user_r in recom_users from el in user_r.MoviesByGenres.Values from movie in el where !user_movies.Contains(movie.MovieId) select movie.MovieId).ToList()
     
-    return movie_recom;
+    return movie_names;
 }
 
 int DamerauLevenshteinDistance(string word1, string word2)
