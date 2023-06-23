@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System.Collections.Immutable;
+using System.Data;
 using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
@@ -99,7 +100,7 @@ while (true)
     {
         var movie_id = check_correct.First(x => x.Value == movie_rate).Key;
         RatingGathering(movieId: movie_id, userId: "NewUser", rating: rating_rate);
-        count++;
+        //count++;
         Console.WriteLine($"\nYou've rated a film '{movie_rate}' ({movie_id}) as {double.Parse(rating_rate)}");
     }
 
@@ -284,7 +285,7 @@ List<string> GetMovieRecommendations()
         var index = 0;
         foreach (double el in cur_user_rat)
         {
-            rat_sum.Add(Math.Pow(el + (double)user_rat[index], 2));
+            rat_sum.Add(Math.Pow(el - (double)user_rat[index], 2));
             index++;
         }
         var len = Math.Sqrt(rat_sum.Sum());
@@ -307,8 +308,8 @@ List<string> GetMovieRecommendations()
     }
     
     var movie_recom = recom_users.SelectMany(user_rec => user_rec.MoviesByGenres.Values.SelectMany(movies_g => movies_g))
-        .Where(movie_rec => !user_movies.Contains(movie_rec.MovieId)).Select(movie_rec => movie_rec.MovieId).Take(5).ToList();
-    var movie_names = movie_recom.Select(movieID => check_correct[movieID]).ToList();
+        .Where(movie_rec => !user_movies.Contains(movie_rec.MovieId)).OrderByDescending(x => x.Popularity).ToList();
+    var movie_names = movie_recom.Select(movieID => check_correct[movieID.MovieId]).Take(5).ToList();
 
     // var movie_recom = recom_users
     //     .SelectMany(user_rec => user_rec.MoviesByGenres.Values.SelectMany(movies_g => movies_g))
