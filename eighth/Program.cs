@@ -54,6 +54,17 @@ using (var csv = new CsvReader(reader, csvConfig))
     }
 }
 
+//////////
+var users_tree = new List<User>();
+foreach (var userObj in users.Values)
+{
+    AddNormRating(userObj);
+    users_tree.Add(userObj);
+}
+var kd = new KdTree(users_tree);
+Console.WriteLine('u');
+//////////
+
 var preferences = new DataTable();
 preferences.Columns.Add("UserId", typeof(string));
 preferences.Columns.Add("Drama", typeof(double));
@@ -73,8 +84,6 @@ foreach (var userPair in users)
 }
 
 Console.WriteLine('h');
-
-var count = 0; // для підрахунку скільки людина вже оцінила фільмів
 
 while (true)
 {
@@ -100,7 +109,6 @@ while (true)
     {
         var movie_id = check_correct.First(x => x.Value == movie_rate).Key;
         RatingGathering(movieId: movie_id, userId: "NewUser", rating: rating_rate);
-        //count++;
         Console.WriteLine($"\nYou've rated a film '{movie_rate}' ({movie_id}) as {double.Parse(rating_rate)}");
     }
 
@@ -111,7 +119,7 @@ while (true)
         case "rate":
             continue;
         case "recommend":
-            RatingProcessing(users.Last()); // Add the new user with their rated movies to the table
+            RatingProcessing(users.Last()); // Add the new user with their rated movies to the table // при кд дереві не треба
             var recommendations = GetMovieRecommendations();
             Console.WriteLine("\nHere are your recommendations:");
             for (var i = 0; i < recommendations.Count; i++)
@@ -324,6 +332,14 @@ List<string> GetMovieRecommendations()
         .Where(movie_rec => !user_movies.Contains(movie_rec.MovieId)).DistinctBy(movie_rec => movie_rec.MovieId).OrderByDescending(x => x.Popularity).ToList();
     var movie_names = movie_recom.Select(movieID => check_correct[movieID.MovieId]).Take(5).ToList();
     
+    ////// KDTREE
+    var userrr = users.Last().Value;
+    AddNormRating(userrr);
+    var recom_user = kd.FindNearestNeighbor(userrr.GenresRatings);
+    var movie_rec_kd = (from mr in recom_user.MoviesByGenres.Values from m in mr select check_correct[m.MovieId]).ToList();
+    ///// return movie_rec_kd;
+    /////
+    
     return movie_names;
 }
 
@@ -354,4 +370,33 @@ int DamerauLevenshteinDistance(string word1, string word2)
         }
     }
     return matrix[w1 , w2];
+}
+
+void AddNormRating(User user)
+{
+    var i = 0;
+    foreach (var genre in genres)
+    {
+        if (user.MoviesByGenres.ContainsKey(genre))
+        {
+            var ratings = user.MoviesByGenres[genre].Select(movie => movie.Rating).ToList();
+            if (ratings.Count == 0)
+            {
+                user.GenresRatings.Insert(i, 0.0);
+            }
+            else if (ratings.Count >= 4)
+            {
+                user.GenresRatings.Insert(i, Math.Round(Normalize(ratings), 1));
+            }
+            else
+            {
+                user.GenresRatings.Insert(i, Math.Round(NormalizeForSmallAmount(ratings), 1));
+            }
+        }
+        else
+        {
+            user.GenresRatings.Insert(i, 0.0);
+        }
+        i++;
+    }
 }

@@ -18,6 +18,7 @@ public class User
 {
     public string UserID { get; set; }
     public Dictionary<string, List<MovieRec>> MoviesByGenres; // це щоб ми знаходили за жанром фільми які можемо порекомендувати
+    public List<double> GenresRatings = new List<double>();
     
     public User()
     {
