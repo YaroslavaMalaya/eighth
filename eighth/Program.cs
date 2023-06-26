@@ -35,7 +35,7 @@ using (var csv = new CsvReader(reader, csvConfig))
 
     check_correct = movies_genres.ToDictionary(x => x.MovieId, x => x.MovieTitle);
     movieIds = movies_genres.ToDictionary(x => x.MovieId, x => 
-        new MoviePop(x.MovieId, x.Genres, double.Parse(x.Popularity.Replace('.', ','))));
+        new MoviePop(x.MovieId, x.Genres, double.Parse(x.Popularity.Replace('.', ',')), x.Country));
 }
 
 var users = new Dictionary<string, User>();
@@ -123,7 +123,7 @@ while (true)
             DiscoveryMode(users, movieIds, check_correct);
             continue;
         default:
-            Console.WriteLine("\nIt looks like you are tired. Go to bed.");
+            Console.WriteLine("\nIt looks like you are tired. Go to your bed and rest.");
             break;
     }
     break;
@@ -133,7 +133,6 @@ void RatingGathering(string userId, string movieId, string rating)
 {
     if (!users.ContainsKey(userId))
     {
-        // всього юзерів 7473
         var user = new User
         {
             UserID = userId,
@@ -152,7 +151,6 @@ void RatingGathering(string userId, string movieId, string rating)
             current_user.Add(genre, m);
         }
     }
-    //current_user.SortPop();
 }
 
 void RatingProcessing(KeyValuePair<string, User> user)
@@ -218,8 +216,8 @@ double NormalizeForSmallAmount(List<int> ratings)
 void DiscoveryMode(Dictionary<string, User> users, Dictionary<string, MoviePop> movieIds, Dictionary<string, string?> check_correct)
 {
     Console.WriteLine("\nWelcome to the discovery!");
-    var movieRecommendations = GetMovieRecommendations();
     var user = users.Last().Value;
+    var movieRecommendations = GetMovieRecommendations();
     var answeredGenres = new List<string>();
 
     foreach (var genre in genres)
@@ -227,7 +225,7 @@ void DiscoveryMode(Dictionary<string, User> users, Dictionary<string, MoviePop> 
         if (answeredGenres.Contains(genre))
             continue;
 
-        Console.WriteLine($"Do you like {genre} movies? (Yes/No)");
+        Console.WriteLine($"\nDo you like {genre} movies? (Yes/No)");
         var response = Console.ReadLine();
 
         if (response.Equals("Yes", StringComparison.OrdinalIgnoreCase))
@@ -235,24 +233,39 @@ void DiscoveryMode(Dictionary<string, User> users, Dictionary<string, MoviePop> 
             var moviesInGenre = movieIds.Values.Where(movie => movie.Genres.Contains(genre)).ToList();
             var unratedMovies = moviesInGenre
                 .Where(movie => !user.MoviesByGenres.ContainsKey(movie.MovieId))
-                .OrderByDescending(movie => movie.Popularity)
-                .Take(2) // Limit the number of movies in each genre
-                .ToList();
-            
-            foreach (var movie in unratedMovies)
-            {
-                Console.WriteLine($"\nHave you seen '{movieIds[movie.MovieId].MovieId}'? (Yes/No)");
+                .OrderByDescending(movie => movie.Popularity).ToList();
+            var movie = unratedMovies.First();
+            var propMovies = new List<string>();
+            var count = 0;
 
+            while (count < 4)
+            {
+                Console.WriteLine($"\nHave you seen '{check_correct[movie.MovieId]}'? (Yes/No)");
                 var movieResponse = Console.ReadLine();
+                propMovies.Add(movie.MovieId);
+                unratedMovies = unratedMovies.Where(mo => !propMovies.Contains(mo.MovieId)).ToList();
+                List<MoviePop> unrated = null;
 
                 if (movieResponse.Equals("Yes", StringComparison.OrdinalIgnoreCase))
                 {
                     Console.WriteLine("\nHow would you rate it?");
                     var rating = Console.ReadLine();
                     RatingGathering(userId: "NewUser", movieId: movie.MovieId, rating: rating);
+                    var country = movie.Country.Split('"').Where(x => x != "[" && x != "]" && x != ",").ToList();
+                    
+                    if (int.Parse(rating) >= 5)
+                    {
+                        unrated= unratedMovies.Where(mo => country.Any(c => mo.Country.Contains(c))).ToList();
+                    }
+                    else
+                    {
+                        unrated= unratedMovies.Where(mo => !country.Any(c => mo.Country.Contains(c))).ToList();
+                    }
                 }
-            }
 
+                movie = unrated != null ? unrated.First() : unratedMovies.First();
+                count++;
+            }
             answeredGenres.Add(genre);
         }
     }
@@ -262,7 +275,7 @@ void DiscoveryMode(Dictionary<string, User> users, Dictionary<string, MoviePop> 
 
     // Display recommendations
     movieRecommendations = GetMovieRecommendations();
-    Console.WriteLine("Here are your recommendations:");
+    Console.WriteLine("\nHere are your recommendations:");
     for (var i = 0; i < movieRecommendations.Count; i++)
     {
         Console.WriteLine($"{i + 1}. {movieRecommendations[i]}");
@@ -308,30 +321,8 @@ List<string> GetMovieRecommendations()
     }
     
     var movie_recom = recom_users.SelectMany(user_rec => user_rec.MoviesByGenres.Values.SelectMany(movies_g => movies_g))
-        .Where(movie_rec => !user_movies.Contains(movie_rec.MovieId)).OrderByDescending(x => x.Popularity).ToList();
+        .Where(movie_rec => !user_movies.Contains(movie_rec.MovieId)).DistinctBy(movie_rec => movie_rec.MovieId).OrderByDescending(x => x.Popularity).ToList();
     var movie_names = movie_recom.Select(movieID => check_correct[movieID.MovieId]).Take(5).ToList();
-
-    // var movie_recom = recom_users
-    //     .SelectMany(user_rec => user_rec.MoviesByGenres.Values.SelectMany(movies_g => movies_g))
-    //     .Where(movie_rec => !user_movies.Contains(movie_rec.MovieId) && movie_rec.Popularity >= 0.6)
-    //     .Select(movie_rec => movie_rec.MovieId).Take(10).ToList();
-    
-    // the same as 
-    /*foreach (var user_r in recom_users)
-    {
-        foreach (var el in user_r.MoviesByGenres.Values)
-        {
-            foreach (var movie in el)
-            {
-                if (!user_movies.Contains(movie.MovieId))
-                {
-                    movie_recom.Add(movie.MovieId);
-                }
-            }
-        }
-    }*/
-    // or as
-    // (from user_r in recom_users from el in user_r.MoviesByGenres.Values from movie in el where !user_movies.Contains(movie.MovieId) select movie.MovieId).ToList()
     
     return movie_names;
 }

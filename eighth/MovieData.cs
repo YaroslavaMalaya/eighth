@@ -14,8 +14,8 @@ public class MovieData
     //[Name("original_language")] public string? LanguageOr { get; set; }
     //[Name("overview")] public string? Overview { get; set; }
     [Name("popularity")] public string? Popularity { get; set; }
-    /*[Name("production_countries")] public string? Country { get; set; }
-    [Name("release_date")] public string? Date { get; set; }
+    [Name("production_countries")] public string? Country { get; set; }
+    /*[Name("release_date")] public string? Date { get; set; }
     [Name("runtime")] public string? Runtime { get; set; }
     [Name("spoken_languages")] public string? LanguagesSp { get; set; }
     [Name("tmdb_id")] public string? TmdbId { get; set; }
@@ -28,13 +28,15 @@ public class MovieData
 public class MoviePop
 {
     public string MovieId;
+    public string? Country;
     public string Genres;
     public double Popularity;
 
-    public MoviePop(string i, string g, double p)
+    public MoviePop(string i, string g, double p, string? c)
     {
         MovieId = i;
         Genres = g;
         Popularity = p;
+        Country = c;
     }
 }

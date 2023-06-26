@@ -35,12 +35,4 @@ public class User
             MoviesByGenres.Add(genre, new List<MovieRec> {movie});
         }
     }
-
-    public void SortPop()
-    {
-        foreach (var genre in MoviesByGenres.Keys)
-        {
-            MoviesByGenres[genre] = MoviesByGenres[genre].OrderBy(x => x.Popularity).ToList();
-        }
-    }
 }
