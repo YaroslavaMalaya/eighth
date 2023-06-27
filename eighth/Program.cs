@@ -4,6 +4,7 @@ using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
 using eighth;
+using System.Text.Json;
 
 
 Dictionary<string, MoviePop> movieIds;
@@ -39,19 +40,29 @@ using (var csv = new CsvReader(reader, csvConfig))
 }
 
 var users = new Dictionary<string, User>();
-using (var reader = new StreamReader("ratings_export.csv"))
-using (var csv = new CsvReader(reader, csvConfig))
-{ 
-    csv.Read();
-    csv.ReadHeader();
-    while (csv.Read())
-    {
-        var rating = csv.GetRecord<RatingsExport>();
-        if (movieIds.ContainsKey(rating.MovieID))
+if (File.Exists("users.json"))
+{
+    var usersJson = File.ReadAllText("users.json");
+    users = JsonSerializer.Deserialize<Dictionary<string, User>>(usersJson);
+}
+else
+{
+    using (var reader = new StreamReader("ratings_export.csv"))
+    using (var csv = new CsvReader(reader, csvConfig))
+    { 
+        csv.Read();
+        csv.ReadHeader();
+        while (csv.Read())
         {
-            RatingGathering(movieId: rating.MovieID, userId: rating.UserID, rating: rating.Rating);
+            var rating = csv.GetRecord<RatingsExport>();
+            if (movieIds.ContainsKey(rating.MovieID))
+            {
+                RatingGathering(movieId: rating.MovieID, userId: rating.UserID, rating: rating.Rating);
+            }
         }
     }
+    var usersJson = JsonSerializer.Serialize(users);
+    File.WriteAllText("users.json", usersJson);
 }
 
 ////////// KDTREE
@@ -64,6 +75,8 @@ foreach (var userObj in users.Values)
 var kd = new KdTree(users_tree);
 Console.WriteLine('u');
 //////////
+
+
 
 /*
 var preferences = new DataTable();
