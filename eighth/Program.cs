@@ -54,7 +54,7 @@ using (var csv = new CsvReader(reader, csvConfig))
     }
 }
 
-//////////
+////////// KDTREE
 var users_tree = new List<User>();
 foreach (var userObj in users.Values)
 {
@@ -65,6 +65,7 @@ var kd = new KdTree(users_tree);
 Console.WriteLine('u');
 //////////
 
+/*
 var preferences = new DataTable();
 preferences.Columns.Add("UserId", typeof(string));
 preferences.Columns.Add("Drama", typeof(double));
@@ -84,6 +85,7 @@ foreach (var userPair in users)
 }
 
 Console.WriteLine('h');
+*/
 
 while (true)
 {
@@ -119,7 +121,7 @@ while (true)
         case "rate":
             continue;
         case "recommend":
-            RatingProcessing(users.Last()); // Add the new user with their rated movies to the table // при кд дереві не треба
+            //RatingProcessing(users.Last()); // Add the new user with their rated movies to the table // при кд дереві не треба
             var recommendations = GetMovieRecommendations();
             Console.WriteLine("\nHere are your recommendations:");
             for (var i = 0; i < recommendations.Count; i++)
@@ -161,6 +163,7 @@ void RatingGathering(string userId, string movieId, string rating)
     }
 }
 
+/*
 void RatingProcessing(KeyValuePair<string, User> user)
 {
     var row = preferences.Rows.Find(user.Key);
@@ -197,6 +200,7 @@ void RatingProcessing(KeyValuePair<string, User> user)
         }
     }
 }
+*/
 
 double Normalize(List<int> ratings)
 {
@@ -279,7 +283,7 @@ void DiscoveryMode(Dictionary<string, User> users, Dictionary<string, MoviePop> 
     }
    
     Console.WriteLine("\nThank you for your responses! Generating recommendations...");
-    RatingProcessing(users.Last()); // Add the new user with their rated movies to the table
+    //RatingProcessing(users.Last()); // Add the new user with their rated movies to the table
 
     // Display recommendations
     movieRecommendations = GetMovieRecommendations();
@@ -292,6 +296,7 @@ void DiscoveryMode(Dictionary<string, User> users, Dictionary<string, MoviePop> 
 
 List<string> GetMovieRecommendations()
 {
+    /*
     var user = users.Last().Value.MoviesByGenres;
     var user_movies = user.Values.SelectMany(list => list.Select(mov => mov.MovieId)).ToList();
     var user_rat = preferences.Rows[^1].ItemArray[1..^2].ToList();
@@ -331,16 +336,18 @@ List<string> GetMovieRecommendations()
     var movie_recom = recom_users.SelectMany(user_rec => user_rec.MoviesByGenres.Values.SelectMany(movies_g => movies_g))
         .Where(movie_rec => !user_movies.Contains(movie_rec.MovieId)).DistinctBy(movie_rec => movie_rec.MovieId).OrderByDescending(x => x.Popularity).ToList();
     var movie_names = movie_recom.Select(movieID => check_correct[movieID.MovieId]).Take(5).ToList();
+    */
     
-    ////// KDTREE
+    ////// KDTREE 
     var userrr = users.Last().Value;
     AddNormRating(userrr);
     var recom_user = kd.FindNearestNeighbor(userrr.GenresRatings);
-    var movie_rec_kd = (from mr in recom_user.MoviesByGenres.Values from m in mr select check_correct[m.MovieId]).ToList();
-    ///// return movie_rec_kd;
+    var movie_rec_kd = (from mr in recom_user.MoviesByGenres.Values 
+        from m in mr.OrderByDescending(m => m.Popularity) select check_correct[m.MovieId]).Take(10).ToList();
+    return movie_rec_kd;
     /////
     
-    return movie_names;
+    //return movie_names;
 }
 
 int DamerauLevenshteinDistance(string word1, string word2)
